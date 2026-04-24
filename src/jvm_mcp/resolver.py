@@ -84,13 +84,22 @@ async def _fetch_from_maven_central(
 
         filename = f"{artifact_id}-{version}-{classifier}.jar"
         url = f"{base_url}/{filename}"
-        async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-            response = await client.get(url)
-            if response.status_code == 200:
-                store(cache_path, response.content)
-                return ResolvedJar(
-                    path=cache_path, source="maven_central", jar_type=jar_type
-                )
+        try:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                response = await client.get(url)
+                if response.status_code == 200:
+                    store(cache_path, response.content)
+                    return ResolvedJar(
+                        path=cache_path, source="maven_central", jar_type=jar_type
+                    )
+        except httpx.TimeoutException:
+            raise SourcesUnavailable(
+                f"Timeout fetching {url}"
+            )
+        except httpx.ConnectError as e:
+            raise SourcesUnavailable(
+                f"Connection error fetching from Maven Central: {e}"
+            )
 
     raise SourcesUnavailable(
         f"Neither sources nor javadoc JAR available on Maven Central "
