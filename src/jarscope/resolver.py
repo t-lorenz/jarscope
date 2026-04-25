@@ -124,12 +124,12 @@ async def _fetch_from_maven_central(
                         raise SourcesUnavailable(
                             f"Downloaded file from {url} is not a valid JAR"
                         )
-                    store(cache_path, response.content)
-                    # Verify cache path didn't escape the cache directory.
-                    resolved = cache_path.resolve()
-                    if not str(resolved).startswith(str(cache_dir().resolve())):
-                        cache_path.unlink(missing_ok=True)
+                    # Verify cache path doesn't escape the cache directory.
+                    expected_root = str(cache_dir().resolve())
+                    cache_path.parent.mkdir(parents=True, exist_ok=True)
+                    if not str(cache_path.resolve()).startswith(expected_root):
                         raise InvalidCoordinate("Path traversal detected")
+                    store(cache_path, response.content)
                     return ResolvedJar(
                         path=cache_path, source="maven_central", jar_type=jar_type
                     )
