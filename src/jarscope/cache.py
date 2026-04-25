@@ -1,7 +1,5 @@
 """Download cache for JARs fetched from Maven Central."""
 
-from __future__ import annotations
-
 import os
 import tempfile
 import time

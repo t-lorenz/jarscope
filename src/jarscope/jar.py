@@ -1,7 +1,5 @@
 """ZIP-based JAR reading: list, read, search operations."""
 
-from __future__ import annotations
-
 import concurrent.futures
 import re
 import zipfile

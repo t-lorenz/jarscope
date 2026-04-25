@@ -1,7 +1,5 @@
 """FastMCP server exposing search, read, and list_files tools."""
 
-from __future__ import annotations
-
 import json
 from typing import Any
 

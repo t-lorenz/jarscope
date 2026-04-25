@@ -1,7 +1,5 @@
 """JAR resolution: Gradle cache -> Maven local -> Maven Central."""
 
-from __future__ import annotations
-
 import asyncio
 import glob
 import io
