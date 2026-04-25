@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from jvm_mcp.jar import (
+from jarscope.jar import (
     _is_binary,
     format_search_results,
     list_files,

@@ -13,7 +13,7 @@ SNAPSHOT_TTL_SECONDS = 3600  # 1 hour
 
 
 def cache_dir() -> Path:
-    return Path(platformdirs.user_cache_dir("jvm-mcp"))
+    return Path(platformdirs.user_cache_dir("jarscope"))
 
 
 def jar_cache_path(

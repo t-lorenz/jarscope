@@ -7,8 +7,8 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from jvm_mcp import jar
-from jvm_mcp.resolver import (
+from jarscope import jar
+from jarscope.resolver import (
     InvalidCoordinate,
     ResolvedJar,
     SourcesUnavailable,
@@ -16,7 +16,7 @@ from jvm_mcp.resolver import (
 )
 
 mcp = FastMCP(
-    "jvm-mcp",
+    "jarscope",
     instructions=(
         "When you need to understand a JVM/Kotlin/Java library API, check how a "
         "class or function works, or find usage patterns in a dependency — use "

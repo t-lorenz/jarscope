@@ -9,7 +9,7 @@ from pathlib import Path
 
 import httpx
 
-from jvm_mcp.cache import is_cached, jar_cache_path, store
+from jarscope.cache import is_cached, jar_cache_path, store
 
 
 @dataclass

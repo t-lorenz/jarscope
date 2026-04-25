@@ -1,5 +1,5 @@
 import pytest
-from jvm_mcp.resolver import parse_coordinate, InvalidCoordinate
+from jarscope.resolver import parse_coordinate, InvalidCoordinate
 
 
 class TestParseCoordinate:

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from jvm_mcp.server import jar_list, jar_read, jar_search
+from jarscope.server import jar_list, jar_read, jar_search
 
 pytestmark = pytest.mark.integration
 

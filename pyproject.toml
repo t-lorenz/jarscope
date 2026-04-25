@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jvm-mcp"
+name = "jarscope"
 version = "0.1.0"
-description = "MCP server for browsing JVM library source JARs"
+description = "Browse and search JVM library source code by Maven coordinate"
 requires-python = ">=3.11"
 license = "MIT"
 dependencies = [
@@ -15,10 +15,10 @@ dependencies = [
 ]
 
 [project.scripts]
-jvm-mcp = "jvm_mcp.server:main"
+jarscope = "jarscope.server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/jvm_mcp"]
+packages = ["src/jarscope"]
 
 [project.optional-dependencies]
 dev = [
