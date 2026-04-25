@@ -2,7 +2,7 @@
 
 **Give your coding agent direct access to any JVM library's source code.**
 
-When agents work with Kotlin or Java projects, they constantly need to check library APIs — how a function works, what parameters it takes, what exceptions it throws. Without Jarscope, they guess, hallucinate, or waste dozens of tool calls digging through your filesystem. With Jarscope, they look it up in 1-3 calls.
+When agents work with Java or Kotlin projects, they constantly need to check library APIs to find out how a function works, what parameters it takes, what exceptions it throws. Without Jarscope, they guess or waste dozens of tool calls digging through your filesystem. With Jarscope, they look it up in 1-3 calls.
 
 ## Quick start
 
@@ -11,8 +11,6 @@ When agents work with Kotlin or Java projects, they constantly need to check lib
 ```sh
 claude mcp add jarscope -- uvx jarscope
 ```
-
-That's it. Your agent can now search, read, and browse the source code of any library in your project's dependencies.
 
 ### Codex
 
@@ -39,7 +37,7 @@ Works with any MCP-compatible client.
 
 ## What your agent gets
 
-Three tools. The agent supplies a Maven coordinate (`groupId:artifactId:version`) from your `build.gradle.kts`, `pom.xml`, or `gradle/libs.versions.toml`.
+Three tools. The agent supplies a Maven coordinate (`groupId:artifactId:version`), which it can derive from the project config.
 
 **`jar_search`** — Search a library's source code for a pattern. Returns matching lines with context, like ripgrep output.
 
@@ -58,13 +56,6 @@ Jarscope resolves Maven coordinates to source JARs by checking:
 If you've built your project before, the JAR is probably already on your machine. If not, Jarscope fetches it. Sources JARs are preferred; javadoc JARs are used as fallback.
 
 JARs are read directly as ZIP files — nothing is extracted to disk.
-
-## Supported libraries
-
-- Kotlin libraries with sources JARs — full support
-- Java libraries with sources JARs — full support
-- Libraries with only javadoc JARs — returns HTML, agent parses
-- Libraries with no published sources — clear error message
 
 ## License
 
