@@ -149,8 +149,8 @@ async def _fetch_from_maven_central(
             )
 
     raise SourcesUnavailable(
-        f"Neither sources nor javadoc JAR available on Maven Central "
-        f"for {group_id}:{artifact_id}:{version}"
+        f"No sources or javadoc JAR found for {group_id}:{artifact_id}:{version}. "
+        f"Checked: Gradle cache, Maven local repo, Maven Central."
     )
 
 

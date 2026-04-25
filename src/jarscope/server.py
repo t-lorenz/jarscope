@@ -118,6 +118,8 @@ async def jar_read(coordinate: str, path: str) -> str:
         message = f"File '{path}' not found in JAR."
         if suggestions:
             message += f" Similar paths: {', '.join(suggestions)}"
+        else:
+            message += " Use jar_list to see available files."
         return _envelope(
             "file_not_found", coordinate, resolved=resolved, message=message
         )
