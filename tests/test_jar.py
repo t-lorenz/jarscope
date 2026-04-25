@@ -58,6 +58,10 @@ class TestListFiles:
         files = list_files(sample_jar, prefix="nonexistent")
         assert files == []
 
+    def test_max_entries(self, sample_jar):
+        files = list_files(sample_jar, max_entries=2)
+        assert len(files) == 2
+
 
 class TestReadFile:
     def test_read_existing(self, sample_jar):

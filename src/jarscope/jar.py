@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import re
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
+
+# Skip individual ZIP entries larger than 10 MB (uncompressed).
+MAX_ENTRY_BYTES = 10 * 1024 * 1024
+
+# Timeout for regex matching against a single file's contents.
+_REGEX_TIMEOUT_SECONDS = 5
 
 
 @dataclass
@@ -17,7 +24,11 @@ class SearchMatch:
     context_after: list[str]
 
 
-def list_files(jar_path: Path, prefix: str | None = None) -> list[str]:
+def list_files(
+    jar_path: Path,
+    prefix: str | None = None,
+    max_entries: int = 2000,
+) -> list[str]:
     """List file entries in the JAR, optionally filtered by path prefix."""
     with zipfile.ZipFile(jar_path, "r") as zf:
         names = [n for n in zf.namelist() if not n.endswith("/")]
@@ -27,22 +38,53 @@ def list_files(jar_path: Path, prefix: str | None = None) -> list[str]:
                 n for n in names
                 if n.startswith(normalized + "/") or n == normalized
             ]
-        return sorted(names)
+        result = sorted(names)
+        if len(result) > max_entries:
+            return result[:max_entries]
+        return result
 
 
 def read_file(jar_path: Path, path: str) -> str:
     """Read a specific file from the JAR, decoded as UTF-8."""
     with zipfile.ZipFile(jar_path, "r") as zf:
         try:
-            data = zf.read(path)
+            info = zf.getinfo(path)
         except KeyError:
             raise FileNotFoundError(f"File '{path}' not found in JAR")
+        if info.file_size > MAX_ENTRY_BYTES:
+            raise ValueError(
+                f"File '{path}' is too large ({info.file_size} bytes, "
+                f"limit {MAX_ENTRY_BYTES})"
+            )
+        data = zf.read(path)
         return data.decode("utf-8", errors="replace")
 
 
 def _is_binary(data: bytes) -> bool:
     """Check if data appears to be binary (null byte in first 512 bytes)."""
     return b"\x00" in data[:512]
+
+
+def _search_file(
+    lines: list[str], pattern: re.Pattern, entry: str,
+    context_lines: int, remaining: int,
+) -> list[SearchMatch]:
+    """Search a single file's lines. Runs in a thread for timeout safety."""
+    matches: list[SearchMatch] = []
+    for i, line in enumerate(lines):
+        if pattern.search(line):
+            start = max(0, i - context_lines)
+            end = min(len(lines), i + context_lines + 1)
+            matches.append(SearchMatch(
+                path=entry,
+                line_number=i + 1,
+                line=line,
+                context_before=lines[start:i],
+                context_after=lines[i + 1:end],
+            ))
+            if len(matches) >= remaining:
+                break
+    return matches
 
 
 def search(
@@ -60,32 +102,38 @@ def search(
         raise ValueError(f"Invalid regex pattern: {e}")
 
     matches: list[SearchMatch] = []
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
     with zipfile.ZipFile(jar_path, "r") as zf:
-        for entry in zf.namelist():
-            if entry.endswith("/"):
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            if info.file_size > MAX_ENTRY_BYTES:
                 continue
 
-            data = zf.read(entry)
+            data = zf.read(info.filename)
             if _is_binary(data):
                 continue
 
             text = data.decode("utf-8", errors="replace")
             lines = text.splitlines()
-            for i, line in enumerate(lines):
-                if pattern.search(line):
-                    start = max(0, i - context_lines)
-                    end = min(len(lines), i + context_lines + 1)
-                    matches.append(SearchMatch(
-                        path=entry,
-                        line_number=i + 1,
-                        line=line,
-                        context_before=lines[start:i],
-                        context_after=lines[i + 1:end],
-                    ))
-                    if len(matches) >= max_matches:
-                        return matches
 
+            remaining = max_matches - len(matches)
+            future = executor.submit(
+                _search_file, lines, pattern, info.filename,
+                context_lines, remaining,
+            )
+            try:
+                file_matches = future.result(timeout=_REGEX_TIMEOUT_SECONDS)
+            except concurrent.futures.TimeoutError:
+                future.cancel()
+                continue  # Skip this file, regex took too long.
+
+            matches.extend(file_matches)
+            if len(matches) >= max_matches:
+                break
+
+    executor.shutdown(wait=False)
     return matches
 
 

@@ -2,14 +2,24 @@
 
 from __future__ import annotations
 
+import asyncio
 import glob
+import io
 import os
+import re as _re
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
 
-from jarscope.cache import is_cached, jar_cache_path, store
+from jarscope.cache import cache_dir, is_cached, jar_cache_path, store
+
+# Maven coordinates contain only alphanumeric, dots, hyphens, underscores.
+_COORD_PART_RE = _re.compile(r"^[A-Za-z0-9._-]+$")
+
+# Total timeout for a single Maven Central download.
+_DOWNLOAD_TIMEOUT_SECONDS = 60
 
 
 @dataclass
@@ -35,6 +45,12 @@ def parse_coordinate(coordinate: str) -> tuple[str, str, str]:
             f"Invalid coordinate '{coordinate}'. "
             "Expected format: groupId:artifactId:version"
         )
+    for part in parts:
+        if not _COORD_PART_RE.match(part):
+            raise InvalidCoordinate(
+                f"Invalid character in coordinate: {part!r}. "
+                "Only alphanumeric, dots, hyphens, and underscores are allowed."
+            )
     return parts[0], parts[1], parts[2]
 
 
@@ -80,25 +96,56 @@ async def _fetch_from_maven_central(
     for classifier, jar_type in [("sources", "sources"), ("javadoc", "javadoc")]:
         cache_path = jar_cache_path(group_id, artifact_id, version, classifier)
         if is_cached(cache_path, version):
-            return ResolvedJar(path=cache_path, source="maven_central", jar_type=jar_type)
+            # Verify cached file is still a valid ZIP.
+            try:
+                zipfile.ZipFile(cache_path).close()
+            except (zipfile.BadZipFile, OSError):
+                cache_path.unlink(missing_ok=True)
+            else:
+                return ResolvedJar(
+                    path=cache_path, source="maven_central", jar_type=jar_type
+                )
 
         filename = f"{artifact_id}-{version}-{classifier}.jar"
         url = f"{base_url}/{filename}"
         try:
-            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-                response = await client.get(url)
+            timeout = httpx.Timeout(connect=10.0, read=30.0, write=10.0, pool=5.0)
+            async with httpx.AsyncClient(
+                follow_redirects=True, timeout=timeout
+            ) as client:
+                response = await asyncio.wait_for(
+                    client.get(url), timeout=_DOWNLOAD_TIMEOUT_SECONDS
+                )
                 if response.status_code == 200:
+                    # Validate it's actually a ZIP before caching.
+                    try:
+                        zipfile.ZipFile(io.BytesIO(response.content)).close()
+                    except zipfile.BadZipFile:
+                        raise SourcesUnavailable(
+                            f"Downloaded file from {url} is not a valid JAR"
+                        )
                     store(cache_path, response.content)
+                    # Verify cache path didn't escape the cache directory.
+                    resolved = cache_path.resolve()
+                    if not str(resolved).startswith(str(cache_dir().resolve())):
+                        cache_path.unlink(missing_ok=True)
+                        raise InvalidCoordinate("Path traversal detected")
                     return ResolvedJar(
                         path=cache_path, source="maven_central", jar_type=jar_type
                     )
-        except httpx.TimeoutException:
+                elif response.status_code in (404, 403):
+                    continue  # Try next classifier.
+                else:
+                    raise SourcesUnavailable(
+                        f"Maven Central returned HTTP {response.status_code} for {url}"
+                    )
+        except (httpx.TransportError, httpx.TooManyRedirects) as e:
             raise SourcesUnavailable(
-                f"Timeout fetching {url}"
+                f"Network error fetching {url}: {e}"
             )
-        except httpx.ConnectError as e:
+        except asyncio.TimeoutError:
             raise SourcesUnavailable(
-                f"Connection error fetching from Maven Central: {e}"
+                f"Download timed out after {_DOWNLOAD_TIMEOUT_SECONDS}s for {url}"
             )
 
     raise SourcesUnavailable(

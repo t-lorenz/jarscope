@@ -30,3 +30,19 @@ class TestParseCoordinate:
     def test_single_word(self):
         with pytest.raises(InvalidCoordinate):
             parse_coordinate("just-a-string")
+
+    def test_path_traversal_in_group(self):
+        with pytest.raises(InvalidCoordinate):
+            parse_coordinate("../../../tmp:evil:1.0")
+
+    def test_glob_wildcard_in_group(self):
+        with pytest.raises(InvalidCoordinate):
+            parse_coordinate("org.*:lib:1.0")
+
+    def test_slash_in_artifact(self):
+        with pytest.raises(InvalidCoordinate):
+            parse_coordinate("org.example:lib/../../etc:1.0")
+
+    def test_space_in_version(self):
+        with pytest.raises(InvalidCoordinate):
+            parse_coordinate("org.example:lib:1.0 ; rm -rf /")
