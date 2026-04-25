@@ -1,16 +1,10 @@
 # Jarscope
 
-Browse and search JVM library source code by Maven coordinate.
+**Give your coding agent direct access to any JVM library's source code.**
 
-Jarscope is an [MCP](https://modelcontextprotocol.io/) server that gives coding agents fast, reliable access to JVM library APIs. Instead of guessing or searching the filesystem, agents can look up classes, functions, and usage patterns directly in a library's published source code.
+When agents work with Kotlin or Java projects, they constantly need to check library APIs — how a function works, what parameters it takes, what exceptions it throws. Without Jarscope, they guess, hallucinate, or waste dozens of tool calls digging through your filesystem. With Jarscope, they look it up in 1-3 calls.
 
-## Install
-
-```
-uvx jarscope
-```
-
-## Configure
+## Quick start
 
 ### Claude Code
 
@@ -18,7 +12,15 @@ uvx jarscope
 claude mcp add jarscope -- uvx jarscope
 ```
 
-### Claude Desktop / Cursor / etc.
+That's it. Your agent can now search, read, and browse the source code of any library in your project's dependencies.
+
+### Codex
+
+```sh
+codex mcp add jarscope -- uvx jarscope
+```
+
+### Cursor / Windsurf / Claude Desktop
 
 Add to your MCP config:
 
@@ -33,43 +35,36 @@ Add to your MCP config:
 }
 ```
 
-## Tools
+Works with any MCP-compatible client.
 
-### `jar_search`
+## What your agent gets
 
-Search a library's source code for a regex pattern. Returns matching lines with surrounding context.
+Three tools. The agent supplies a Maven coordinate (`groupId:artifactId:version`) from your `build.gradle.kts`, `pom.xml`, or `gradle/libs.versions.toml`.
 
-```
-jar_search("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0", "class Json")
-```
+**`jar_search`** — Search a library's source code for a pattern. Returns matching lines with context, like ripgrep output.
 
-### `jar_read`
+**`jar_read`** — Read a specific source file in full.
 
-Read the full source of a specific file in a library.
-
-```
-jar_read("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0", "commonMain/kotlinx/serialization/json/Json.kt")
-```
-
-### `jar_list`
-
-List files in a library's source JAR, optionally filtered by package path.
-
-```
-jar_list("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0", prefix="commonMain/kotlinx/serialization/json")
-```
+**`jar_list`** — Browse the file tree of a library to discover what's inside.
 
 ## How it works
 
-All three tools take a Maven coordinate (`groupId:artifactId:version`), which agents can find in `build.gradle.kts`, `pom.xml`, or `gradle/libs.versions.toml`.
+Jarscope resolves Maven coordinates to source JARs by checking:
 
-Jarscope resolves coordinates to source JARs by checking, in order:
-
-1. Gradle cache (`~/.gradle/caches/`)
-2. Maven local repo (`~/.m2/repository/`)
+1. Your Gradle cache (`~/.gradle/caches/`)
+2. Your Maven local repo (`~/.m2/repository/`)
 3. Maven Central (downloaded and cached locally)
 
-JARs are read directly as ZIP files — no extraction needed. Sources JARs are preferred; javadoc JARs are used as fallback.
+If you've built your project before, the JAR is probably already on your machine. If not, Jarscope fetches it. Sources JARs are preferred; javadoc JARs are used as fallback.
+
+JARs are read directly as ZIP files — nothing is extracted to disk.
+
+## Supported libraries
+
+- Kotlin libraries with sources JARs — full support
+- Java libraries with sources JARs — full support
+- Libraries with only javadoc JARs — returns HTML, agent parses
+- Libraries with no published sources — clear error message
 
 ## License
 
