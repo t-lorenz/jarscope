@@ -18,9 +18,12 @@ from jvm_mcp.resolver import (
 mcp = FastMCP(
     "jvm-mcp",
     instructions=(
-        "JVM Library Docs server. Provides search, read, and list_files tools "
-        "for browsing JVM library source JARs by Maven coordinate "
-        "(groupId:artifactId:version)."
+        "When you need to understand a JVM/Kotlin/Java library API, check how a "
+        "class or function works, or find usage patterns in a dependency — use "
+        "these tools instead of guessing or searching the filesystem. You need "
+        "the library's Maven coordinate (groupId:artifactId:version), which you "
+        "can find in build.gradle.kts, build.gradle, pom.xml, or "
+        "gradle/libs.versions.toml."
     ),
 )
 
@@ -61,12 +64,14 @@ async def _resolve_or_error(
 
 @mcp.tool(
     description=(
-        "Search library sources for a regex pattern. Returns matching lines "
-        "with surrounding context, grouped by file. "
-        "Coordinate format: groupId:artifactId:version"
+        "Look up API usage, classes, or functions in a JVM library dependency "
+        "(Kotlin/Java). Searches the library's published source code for a "
+        "regex pattern and returns matching lines with surrounding context. "
+        "Coordinate format: groupId:artifactId:version (from build.gradle.kts, "
+        "pom.xml, or gradle/libs.versions.toml)."
     )
 )
-async def search(
+async def jar_search(
     coordinate: str,
     query: str,
     case_insensitive: bool = False,
@@ -93,12 +98,14 @@ async def search(
 
 @mcp.tool(
     description=(
-        "Read a specific file from a library's source JAR. "
-        "Coordinate format: groupId:artifactId:version. "
-        "Path is the file path within the JAR (e.g., com/example/Foo.kt)."
+        "Read the full source code of a specific file in a JVM library "
+        "dependency. Use after jar_search or jar_list to read a file you've "
+        "identified. Path is the file path within the JAR "
+        "(e.g., com/example/Foo.kt). "
+        "Coordinate format: groupId:artifactId:version."
     )
 )
-async def read(coordinate: str, path: str) -> str:
+async def jar_read(coordinate: str, path: str) -> str:
     resolved, error = await _resolve_or_error(coordinate)
     if error:
         return error
@@ -120,12 +127,14 @@ async def read(coordinate: str, path: str) -> str:
 
 @mcp.tool(
     description=(
-        "List files in a library's source JAR. "
+        "Browse the file structure of a JVM library dependency to discover "
+        "what packages and source files it contains. Use this to orient "
+        "yourself before jar_search or jar_read. "
         "Coordinate format: groupId:artifactId:version. "
-        "Optional prefix filters the listing (e.g., com/example/)."
+        "Optional prefix filters by package path (e.g., com/example/)."
     )
 )
-async def list_files(coordinate: str, prefix: str | None = None) -> str:
+async def jar_list(coordinate: str, prefix: str | None = None) -> str:
     resolved, error = await _resolve_or_error(coordinate)
     if error:
         return error
