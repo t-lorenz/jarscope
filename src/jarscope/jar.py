@@ -27,7 +27,7 @@ class SearchMatch:
 def list_files(
     jar_path: Path,
     prefix: str | None = None,
-    max_entries: int = 2000,
+    max_entries: int = 10000,
 ) -> list[str]:
     """List file entries in the JAR, optionally filtered by path prefix."""
     with zipfile.ZipFile(jar_path, "r") as zf:
