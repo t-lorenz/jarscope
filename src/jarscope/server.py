@@ -1,4 +1,4 @@
-"""FastMCP server exposing search, read, and list_files tools."""
+"""FastMCP server exposing jar_search, jar_read, and jar_list tools."""
 
 import json
 from typing import Any
@@ -88,8 +88,6 @@ async def jar_search(
         )
         formatted = jar.format_search_results(matches)
         return _envelope("ok", coordinate, resolved=resolved, data=formatted)
-    except ValueError as e:
-        return _envelope("error", coordinate, resolved=resolved, message=str(e))
     except Exception as e:
         return _envelope("error", coordinate, resolved=resolved, message=str(e))
 

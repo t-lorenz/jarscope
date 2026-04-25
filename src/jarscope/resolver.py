@@ -4,7 +4,7 @@ import asyncio
 import glob
 import io
 import os
-import re as _re
+import re
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,7 +14,7 @@ import httpx
 from jarscope.cache import cache_dir, is_cached, jar_cache_path, store
 
 # Maven coordinates contain only alphanumeric, dots, hyphens, underscores.
-_COORD_PART_RE = _re.compile(r"^[A-Za-z0-9._-]+$")
+_COORD_PART_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 # Total timeout for a single Maven Central download.
 _DOWNLOAD_TIMEOUT_SECONDS = 60
